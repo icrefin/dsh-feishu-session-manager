@@ -1,0 +1,12 @@
+# pnpm 11 reads build-script approval from this file, not from package.json
+# (`pnpm.onlyBuiltDependencies` there is warned about and ignored). esbuild's
+# postinstall is what makes vitest and tsdown usable, so approve exactly that
+# one rather than running every dependency's install script.
+#
+# protobufjs ships a postinstall that only prints a version-scheme warning about
+# its own dependents (scripts/postinstall.js returns early when there is
+# nothing to check), so it stays declined: the Feishu SDK decodes events with
+# the published runtime and needs no build step.
+allowBuilds:
+  esbuild: true
+  protobufjs: false

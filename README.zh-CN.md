@@ -1,0 +1,170 @@
+# dsh-feishu-session-manager
+
+一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）插件：把**一个飞书聊天**变成这台机器上**所有会话**的操作界面。
+
+会话把结果推送到聊天里，总结由模型撰写，每条推送都写明它来自哪个工作区、哪个会话。你的回复再经过第二次模型调用，决定它属于**哪个**会话——或者，是否该新建一个会话，并把必须继承的事实带过去。
+
+[English](README.md) | **简体中文**
+
+[![License](https://img.shields.io/github/license/icrefin/dsh-feishu-session-manager?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/icrefin/dsh-feishu-session-manager/ci.yml?branch=main&style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/actions/workflows/ci.yml)
+[![Last commit](https://img.shields.io/github/last-commit/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/commits/main)
+[![Stars](https://img.shields.io/github/stars/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/stargazers)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](.github/CONTRIBUTING.md)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.17-339933?style=flat-square&logo=node.js)](https://nodejs.org)
+[![dsh](https://img.shields.io/badge/dsh-0.2.1--rc.5-4B5563?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness)
+
+```
+飞书聊天  ⇄  飞书长连接  ⇄  桥接  ⇄  每一个会话
+                        │        │
+                  总结用模型   路由用模型
+```
+
+## 它做什么
+
+| 方向 | 行为 |
+|---|---|
+| 会话 → 聊天 | 回合结束后，由模型生成简短总结；每条消息都带有 `Workspace: … \| Session: …`。 |
+| 会话 → 聊天 | 回合失败时，推送失败码与模型分析。 |
+| 会话 → 聊天 | `ask_user_question` 与权限请求以编号菜单推送，可直接在聊天里回答。 |
+| 聊天 → 会话 | 自由文本由模型路由到已有会话、新建会话，或"新建会话 + 提炼后的上下文"。 |
+| 聊天 → 会话 | `/sessions`、`/use`、`/new`、`/bind`、`/status`、`/help`、`/skip` 始终是确定性的兜底通道。 |
+
+路由模型权衡四件事，提示词里把这四条都写明了：
+
+1. **相关性** —— 这条消息是否延续某个会话的线索？
+2. **工作区** —— 它属于哪个项目目录？
+3. **上下文长度** —— 按会话**自己的模型窗口**衡量：这个数字来自 Harness（`contextPressure` 投影，或会话选中的模型），不是插件编出来的预算。接近窗口上限的会话不是好宿主；此时路由会把关键事实提炼进一个新会话，而不是强行续写。
+4. **闲置时间** —— 长时间闲置的会话，KV cache 已经失效，复用并不比新建更省。
+
+插件从不把模型没见过的身份当真：答案里的每个 `sessionId`、`workspaceId` 都要在模型当时看到的目录里存在；缺失的 `prompt` 回退成你的原话；无法使用的答案会变成一个追问，而不是一次错误的投递。
+
+## 安装
+
+```sh
+pnpm install
+pnpm check          # 类型检查两半、构建，再跑完整测试
+pnpm pack           # dist/dsh-feishu-session-manager-0.1.7.tgz
+```
+
+用 **设置 → 插件** 安装 tarball，然后**重启应用**。往运行中的 profile 里加 bundle 必须重启才生效，而同版本重装是静默无操作——请改版本号。
+
+包内自带 `cordis.patch.yml` 行，所以把它加进 `dsh.profile.bundles` 就算完成注册。该行不需要配置：所有设置都由设置页写入。
+
+### 飞书应用
+
+1. 在[飞书开放平台](https://open.feishu.cn/app)创建自建应用，并开启**机器人**能力。
+2. **事件订阅**：选择**长连接**模式，订阅 `im.message.receive_v1`。**不要**填请求地址——桥接进程主动外连飞书，因此不需要对外端口、隧道或证书。
+3. **权限**：`im:message`（接收发给机器人的消息）与 `im:message:send_as_bot`（以机器人身份发消息）。
+4. 发布版本，然后把机器人拉进群聊，或直接与它单聊。
+5. 在插件设置页填入 **App ID** 与 **App Secret**，打开桥接开关。
+
+飞书只推送**@了机器人**的群消息；单聊不需要 @。
+
+## 设置页
+
+**设置 → 飞书**（独立的一个导航分区）。
+
+| 分组 | 字段 |
+|---|---|
+| 连接 | 启用、App ID、App Secret（只写）、Encrypt Key、Verification Token、通知会话、回复语言 |
+| 模型 | provider、model、思考强度——两次辅助调用共用同一条线路 |
+| 提示词 | 路由提示词与总结提示词，可编辑，也可恢复默认 |
+| 通知 | 回合完成、回合失败、提问、权限请求 |
+| 路由策略 | 是否允许新建会话、闲置判定分钟数、路由输出上限、每会话摘录长度、候选会话数、回答超时、单条消息长度、详细日志 |
+| 状态 | 实时链路状态、计数器、等待回答的交互、活动日志、发送测试消息、重新连接、**预演路由** |
+
+状态区不是装饰：**预演路由**会用真实的路由模型跑一条样例消息，但不投递任何东西——这是查"这条消息为什么会走错"的最快方法。
+
+凭据在 schema 里声明为 `secret`，设置通道永远不会把它们回传给浏览器。页面显示 `已保存，输入以替换` 而不是原值，留空即保留已保存的值。
+
+## 和机器人对话
+
+```
+/sessions                 列出最近会话并编号
+/use <n|id>               下一条消息直接发给该会话
+/new [workspace]          立即新建会话，绕过路由
+/bind                     把当前聊天设为通知目标
+/status                   链路、模型、计数器、等待项
+/skip <text>              有交互在等待回答时，仍然把这段文本交给路由
+/help                     命令列表
+```
+
+提问与权限请求都用编号回答：
+
+- 提问：回复选项序号（`2`），多选问题用逗号（`1,3`），其他文本则作为你自己的答案；
+- 权限请求：回复 `1` 允许一次，`2` 拒绝；
+- 多个交互同时等待时，用 `#<n>` 前缀，例如 `#2 1`。
+
+第一个给机器人发消息的聊天会成为通知目标，并写入 profile 的设置文档，重启后仍然有效。
+
+## 代码如何分工
+
+| 文件 | 职责 |
+|---|---|
+| `src/index.ts` | Loader 入口：inject 列表、`apply`、路由挂载 |
+| `src/bridge.ts` | 四个判断：通知、路由、提问、重连 |
+| `src/feishu/client.ts` | 长连接收、REST 发、入站消息归一化 |
+| `src/feishu/format.ts` | 全部消息形状与回包语法解析（纯函数） |
+| `src/session/catalog.ts` | 工作区 + 候选会话 + 摘录，短时缓存 |
+| `src/session/extract.ts` | 会话日志 → 对话行（纯函数，绝不抛错） |
+| `src/llm/call.ts` | 通过 `ctx.llm` 的一次性缓冲调用 |
+| `src/llm/prompts.ts` | 提示词拼装与决策校验（纯函数） |
+| `src/interaction.ts` | 提问与权限请求的等待队列（纯函数） |
+| `src/routes.ts` | 只服务设置页、带 loopback 围栏的 HTTP |
+| `src/client/` | 设置页 |
+
+有两个设计决定值得知道：
+
+- **inject 列表很长是有原因的。** cordis 的服务代理会把 `this` 绑定到**调用方**的 context，所以 session controller 的冷启动 prompt 路径，是通过**本插件**的 context 去读 `fileUploads`、`attachments`、`fileReferences`、`agentDefaultModel`、`remoteAccess`、`workingDirectory`、`sessionProjections`、`sessionQuery`、`sessions`、`agents`、`llm`、`workspaceRegistry` 的。少写一个，只有"第一次恢复冷会话"会失败，而且时好时坏。
+- **模型说的话只是建议。** `parseRouteDecision` 消费模型的答案：id、动作、必填字段都校验，`confidence` 会被截到 0..1。模型无法指定一个目录里没有的会话。
+
+### 路由模型失败时
+
+路由答案是一个 JSON 对象。模型仍可能回一段散文，或者因为思考 token 吃光输出预算而停在对象中间。三层防御保证它不会变成死路：
+
+- 解析是宽容的：代码块里的对象、夹在散文里的对象、可以补全的截断对象，都算数；
+- 失败后重试一次，并在用户消息里重复答案契约——这同时覆盖"适配器把 system 槽丢掉"的情况；
+- 两次都不可用时，走确定性兜底：消息里点名的工作区优先，否则用最近活跃的那个，并在确认语里说明是兜底路由。
+
+`路由输出上限（token）` 控制第一层的预算：思考 token 也计入，所以默认是 2000，而不是 800。
+活动日志会记录两次尝试，包括不可用答案的长度与开头。
+
+### 没有投递目标时也不会丢弃
+
+会话可能在聊天从未对机器人说过话时就停下——重启后，通知目标要等第一条入站消息才确定，而这正是"因权限停止"的推送最要紧的时刻。无法投递的消息会被暂存（上限 50 条，先丢最旧），等聊天与在线连接都就绪后按顺序补发；每条都带一行 `⏳ Held since HH:MM:SS`，避免迟到消息被当成新事件。设置页会显示暂存数量，聊天绑定也会写回 profile，重启后即为已绑定。
+
+## 限制
+
+- **只处理文本。** 发给机器人的图片、文件、表情、语音会被告知"只支持文本"，不会路由。
+- **插件自身的提示是英文。** 模型总结会跟随发送者语言（或"回复语言"设置）；桥接自己的确认语不是。
+- **一次只绑定一个聊天。** 多个聊天都能对它说话，但只有绑定的那个收到推送。
+- **权限策略仍归 harness。** 会话策略为 `never` 时，权限请求根本不会触发，也就没有可回答的东西。
+- **提问是前台等待。** 若在"回答超时"内没有回答，请求会交给浏览器 UI（可能以失败关闭收场）。插件不会编造结果。
+
+## 验证
+
+这一版实际检查了什么、没检查什么：
+
+| 层级 | 结果 |
+|---|---|
+| 类型检查 | **通过**（host + 测试、client 两份 tsconfig） |
+| 单元与行为测试 | **142 项通过**——消息形状、回包语法、路由校验（含截断答案与结构损坏的 JSON）、端到端跑通的路由兜底路径、会话摘录、真实 loopback server 上的路由族、把 host 半边挂到桩 harness 上并让 `turn/end` 一路走到模型调用、以及构建后的 client bundle 注册 `settings.section` |
+| 构建产物 | 在假 module loader 之后**加载成功**：以包名注册一个 entry，导出 `apply`/`inject`/`NS`/`SECTION_ID`，只请求 React |
+| 运行中的 host | **可用**——status 路由返回运行版本，11 个探测到的 host 服务全部就绪 |
+| 页面外观 | **未验证**——该会话里浏览器控制被拒绝，页面在浅色/深色主题下的实际渲染仍需人工看一眼 |
+
+重启之后，`curl http://127.0.0.1:<port>/api/dsh-feishu-session-manager/status` 会返回正在运行的版本——"现在跑的是哪份代码"只需要一次请求。
+
+## 贡献
+
+欢迎提交 issue 与 pull request——开发环境搭建与签署要求在
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) 中说明；安全问题请按
+[SECURITY.md](.github/SECURITY.md) 所述私下报告。
+
+## 许可证
+
+MIT —— 见 [LICENSE](./LICENSE)。
+
+> 如果会话终于能在你本来就在的地方找到你，一颗 ⭐ star 能帮更多 DSH 用户发现它。

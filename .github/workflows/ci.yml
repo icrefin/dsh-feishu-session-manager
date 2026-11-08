@@ -45,7 +45,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           # package.json declares "node": ">=22.17.0"; 22 is the current LTS line.
-          node-version: "22"
+          node-version: "24"
           cache: pnpm
 
       - name: Install

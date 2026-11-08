@@ -6,15 +6,6 @@
 
 [English](README.md) | **简体中文**
 
-[![License](https://img.shields.io/github/license/icrefin/dsh-feishu-session-manager?style=flat-square)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/icrefin/dsh-feishu-session-manager/ci.yml?branch=main&style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/actions/workflows/ci.yml)
-[![Last commit](https://img.shields.io/github/last-commit/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/commits/main)
-[![Stars](https://img.shields.io/github/stars/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/stargazers)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](.github/CONTRIBUTING.md)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.17-339933?style=flat-square&logo=node.js)](https://nodejs.org)
-[![dsh](https://img.shields.io/badge/dsh-0.2.1--rc.5-4B5563?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness)
-
 ```
 飞书聊天  ⇄  飞书长连接  ⇄  桥接  ⇄  每一个会话
                         │        │
@@ -44,8 +35,8 @@
 
 ```sh
 pnpm install
-pnpm check          # 类型检查两半、构建，再跑完整测试
-pnpm pack           # dist/dsh-feishu-session-manager-0.1.7.tgz
+pnpm check          # 类型检查两半、构建、142 项测试
+pnpm pack           # dist/dsh-feishu-session-manager-0.1.8.tgz
 ```
 
 用 **设置 → 插件** 安装 tarball，然后**重启应用**。往运行中的 profile 里加 bundle 必须重启才生效，而同版本重装是静默无操作——请改版本号。
@@ -157,14 +148,6 @@ pnpm pack           # dist/dsh-feishu-session-manager-0.1.7.tgz
 
 重启之后，`curl http://127.0.0.1:<port>/api/dsh-feishu-session-manager/status` 会返回正在运行的版本——"现在跑的是哪份代码"只需要一次请求。
 
-## 贡献
+## 许可
 
-欢迎提交 issue 与 pull request——开发环境搭建与签署要求在
-[CONTRIBUTING.md](.github/CONTRIBUTING.md) 中说明；安全问题请按
-[SECURITY.md](.github/SECURITY.md) 所述私下报告。
-
-## 许可证
-
-MIT —— 见 [LICENSE](./LICENSE)。
-
-> 如果会话终于能在你本来就在的地方找到你，一颗 ⭐ star 能帮更多 DSH 用户发现它。
+MIT

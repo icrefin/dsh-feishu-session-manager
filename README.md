@@ -1,17 +1,5 @@
 # dsh-feishu-session-manager
 
-One Feishu chat as the interface of every session in this Harness — summaries out, routed replies back in.
-**English** | [简体中文](README.zh-CN.md)
-
-[![License](https://img.shields.io/github/license/icrefin/dsh-feishu-session-manager?style=flat-square)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/icrefin/dsh-feishu-session-manager/ci.yml?branch=main&style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/actions/workflows/ci.yml)
-[![Last commit](https://img.shields.io/github/last-commit/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/commits/main)
-[![Stars](https://img.shields.io/github/stars/icrefin/dsh-feishu-session-manager?style=flat-square)](https://github.com/icrefin/dsh-feishu-session-manager/stargazers)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](.github/CONTRIBUTING.md)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.17-339933?style=flat-square&logo=node.js)](https://nodejs.org)
-[![dsh](https://img.shields.io/badge/dsh-0.2.1--rc.5-4B5563?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness)
-
 A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that turns one **Feishu** chat into the interface of *every* session in this Harness.
 
 Sessions report themselves into the chat. Summaries are written by a model, and every push names the workspace and the session it came from. Your reply goes back through a second model call that decides **which** session the message belongs to — or whether a fresh session is the better host, and which facts must be carried over.
@@ -47,8 +35,8 @@ The plugin never trusts the model with an identity it was not offered: every `se
 
 ```sh
 pnpm install
-pnpm check          # typecheck both halves, build, then the full test suite
-pnpm pack           # dist/dsh-feishu-session-manager-0.1.7.tgz
+pnpm check          # typecheck both halves, build, 142 tests
+pnpm pack           # dist/dsh-feishu-session-manager-0.1.8.tgz
 ```
 
 Install the tarball through **Settings → Plugins**, then **restart** the application. Adding a bundle to a running profile never takes effect until the host process restarts, and reinstalling the same version is a silent no-op — bump the version instead.
@@ -178,14 +166,6 @@ After a restart, `curl http://127.0.0.1:<port>/api/dsh-feishu-session-manager/st
 
 完整的中文说明见 [README.zh-CN.md](README.zh-CN.md)：功能、安装、飞书应用配置、设置页字段、聊天命令与验证范围。
 
-## Contributing
-
-Issues and pull requests are welcome — see [CONTRIBUTING.md](.github/CONTRIBUTING.md)
-for the development setup and the sign-off expectation. Please report security
-issues privately as described in [SECURITY.md](.github/SECURITY.md).
-
 ## License
 
-MIT — see [LICENSE](./LICENSE).
-
-> If your sessions finally reach you where you already are, a ⭐ star helps other DSH users find it.
+MIT

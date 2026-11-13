@@ -36,7 +36,7 @@
 ```sh
 pnpm install
 pnpm check          # 类型检查两半、构建、142 项测试
-pnpm pack           # dist/dsh-feishu-session-manager-0.1.8.tgz
+pnpm pack           # dist/dsh-feishu-session-manager-0.1.9.tgz
 ```
 
 用 **设置 → 插件** 安装 tarball，然后**重启应用**。往运行中的 profile 里加 bundle 必须重启才生效，而同版本重装是静默无操作——请改版本号。

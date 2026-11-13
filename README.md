@@ -36,7 +36,7 @@ The plugin never trusts the model with an identity it was not offered: every `se
 ```sh
 pnpm install
 pnpm check          # typecheck both halves, build, 142 tests
-pnpm pack           # dist/dsh-feishu-session-manager-0.1.8.tgz
+pnpm pack           # dist/dsh-feishu-session-manager-0.1.9.tgz
 ```
 
 Install the tarball through **Settings → Plugins**, then **restart** the application. Adding a bundle to a running profile never takes effect until the host process restarts, and reinstalling the same version is a silent no-op — bump the version instead.

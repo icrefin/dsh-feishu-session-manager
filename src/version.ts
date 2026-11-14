@@ -12,7 +12,7 @@
  */
 
 /** Package version, kept equal to `package.json`. */
-export const VERSION = '0.1.9'
+export const VERSION = '0.1.10'
 
 /**
  * The version chip's credit, verbatim.
